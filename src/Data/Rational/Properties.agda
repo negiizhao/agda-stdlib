@@ -28,7 +28,7 @@ import Data.Nat.DivMod as ℕ
 open import Data.Product using (_×_; _,_)
 open import Data.Rational.Base
 open import Data.Rational.Unnormalised.Base as ℚᵘ
-  using (ℚᵘ; *≡*; *≤*) renaming (↥_ to ↥ᵘ_; ↧_ to ↧ᵘ_; _≃_ to _≃ᵘ_; _≤_ to _≤ᵘ_)
+  using (ℚᵘ; *≡*; *≤*; *<*) renaming (↥_ to ↥ᵘ_; ↧_ to ↧ᵘ_; _≃_ to _≃ᵘ_; _≤_ to _≤ᵘ_; _<_ to _<ᵘ_)
 import Data.Rational.Unnormalised.Properties as ℚᵘ
 open import Data.Sum.Base
 open import Data.Unit using (tt)
@@ -54,6 +54,16 @@ private
   infix 4 _≢0
   _≢0 : ℕ → Set
   n ≢0 = False (n ℕ.≟ 0)
+
+------------------------------------------------------------------------
+-- Properties of Positive/Negative/NonPositive/NonNegative predicates
+------------------------------------------------------------------------
+
+positive⇒nonNegative : ∀ q → Positive q → NonNegative q
+positive⇒nonNegative q = ℚᵘ.positive⇒nonNegative (toℚᵘ q)
+
+negative⇒nonPositive : ∀ q → Negative q → NonPositive q
+negative⇒nonPositive q = ℚᵘ.negative⇒nonPositive (toℚᵘ q)
 
 ------------------------------------------------------------------------
 -- Propositional equality
@@ -240,7 +250,7 @@ toℚᵘ-cancel-≤ (*≤* p≤q) = *≤* p≤q
 toℚᵘ-isOrderHomomorphism-≤ : IsOrderHomomorphism _≡_ _≃ᵘ_ _≤_ _≤ᵘ_ toℚᵘ
 toℚᵘ-isOrderHomomorphism-≤ = record
   { cong = toℚᵘ-cong
- ; mono = toℚᵘ-mono-≤
+  ; mono = toℚᵘ-mono-≤
   }
 
 toℚᵘ-isOrderMonomorphism-≤ : IsOrderMonomorphism _≡_ _≃ᵘ_ _≤_ _≤ᵘ_ toℚᵘ
@@ -324,6 +334,28 @@ p ≤? q = Dec.map′ *≤* drop-*≤* (↥ p ℤ.* ↧ q ℤ.≤? ↥ q ℤ.* �
 
 drop-*<* : ∀ {p q} → p < q → (↥ p ℤ.* ↧ q) ℤ.< (↥ q ℤ.* ↧ p)
 drop-*<* (*<* pq<qp) = pq<qp
+
+------------------------------------------------------------------------
+-- toℚᵘ is a isomorphism
+
+toℚᵘ-mono-< : ∀ {p q} → p < q → toℚᵘ p <ᵘ toℚᵘ q
+toℚᵘ-mono-< (*<* p<q) = *<* p<q
+
+toℚᵘ-cancel-< : ∀ {p q} → toℚᵘ p <ᵘ toℚᵘ q → p < q
+toℚᵘ-cancel-< (*<* p<q) = *<* p<q
+
+toℚᵘ-isOrderHomomorphism-< : IsOrderHomomorphism _≡_ _≃ᵘ_ _<_ _<ᵘ_ toℚᵘ
+toℚᵘ-isOrderHomomorphism-< = record
+  { cong = toℚᵘ-cong
+  ; mono = toℚᵘ-mono-<
+  }
+
+toℚᵘ-isOrderMonomorphism-< : IsOrderMonomorphism _≡_ _≃ᵘ_ _<_ _<ᵘ_ toℚᵘ
+toℚᵘ-isOrderMonomorphism-< = record
+  { isOrderHomomorphism = toℚᵘ-isOrderHomomorphism-<
+  ; injective           = toℚᵘ-injective
+  ; cancel              = toℚᵘ-cancel-<
+  }
 
 ------------------------------------------------------------------------
 -- Relational properties
@@ -582,15 +614,15 @@ toℚᵘ-isMonoidMonomorphism-+ = record
 ------------------------------------------------------------------------
 -- Monomorphic to unnormalised -_
 
-toℚᵘ-homo‿- : Homomorphic₁ toℚᵘ (-_) (ℚᵘ.-_)
-toℚᵘ-homo‿- (mkℚ +0       _ _) = *≡* refl
-toℚᵘ-homo‿- (mkℚ +[1+ _ ] _ _) = *≡* refl
-toℚᵘ-homo‿- (mkℚ -[1+ _ ] _ _) = *≡* refl
+toℚᵘ-homo-neg : Homomorphic₁ toℚᵘ (-_) (ℚᵘ.-_)
+toℚᵘ-homo-neg (mkℚ +0       _ _) = *≡* refl
+toℚᵘ-homo-neg (mkℚ +[1+ _ ] _ _) = *≡* refl
+toℚᵘ-homo-neg (mkℚ -[1+ _ ] _ _) = *≡* refl
 
 toℚᵘ-isGroupHomomorphism-+ : IsGroupHomomorphism +-0-rawGroup ℚᵘ.+-0-rawGroup toℚᵘ
 toℚᵘ-isGroupHomomorphism-+ = record
   { isMonoidHomomorphism = toℚᵘ-isMonoidHomomorphism-+
-  ; ⁻¹-homo              = toℚᵘ-homo‿-
+  ; ⁻¹-homo              = toℚᵘ-homo-neg
   }
 
 toℚᵘ-isGroupMonomorphism-+ : IsGroupMonomorphism +-0-rawGroup ℚᵘ.+-0-rawGroup toℚᵘ
@@ -629,8 +661,8 @@ private
 +-inverse : Inverse 0ℚ -_ _+_
 +-inverse = +-Monomorphism.inverse ℚᵘ.+-isMagma ℚᵘ.+-inverse
 
--‿cong :  Congruent₁ (-_)
--‿cong = +-Monomorphism.⁻¹-cong ℚᵘ.+-isMagma ℚᵘ.-‿cong
+neg-cong : Congruent₁ (-_)
+neg-cong = +-Monomorphism.⁻¹-cong ℚᵘ.+-isMagma ℚᵘ.neg-cong
 
 ------------------------------------------------------------------------
 -- Structures
@@ -685,6 +717,59 @@ private
 +-0-abelianGroup = record
   { isAbelianGroup = +-0-isAbelianGroup
   }
+
+------------------------------------------------------------------------
+-- Properties of _+_ and -_
+
+neg-distrib-+ : ∀ p q → - (p + q) ≡ (- p) + (- q)
+neg-distrib-+ p q = toℚᵘ-injective (begin-equality
+  toℚᵘ(- (p + q))                    ≈⟨ toℚᵘ-homo-neg (p + q) ⟩
+  ℚᵘ.- toℚᵘ(p + q)                   ≈⟨ ℚᵘ.neg-cong (toℚᵘ-homo-+ p q) ⟩
+  ℚᵘ.- (toℚᵘ(p) ℚᵘ.+ toℚᵘ(q))        ≡⟨ ℚᵘ.neg-distrib-+ (toℚᵘ p) (toℚᵘ q) ⟩
+  (ℚᵘ.- toℚᵘ(p)) ℚᵘ.+ (ℚᵘ.- toℚᵘ(q)) ≈⟨ ℚᵘ.≃-sym (ℚᵘ.+-cong (toℚᵘ-homo-neg p) (toℚᵘ-homo-neg q)) ⟩
+  toℚᵘ(- p) ℚᵘ.+ toℚᵘ(- q)           ≈⟨ ℚᵘ.≃-sym (toℚᵘ-homo-+ (- p) (- q)) ⟩
+  toℚᵘ((- p) + (- q))             ∎)
+  where open ℚᵘ.≤-Reasoning
+
+------------------------------------------------------------------------
+-- Properties of _+_ and _≤_
+
++-mono-≤ : _+_ Preserves₂ _≤_ ⟶ _≤_ ⟶ _≤_
++-mono-≤ {p} {q} {r} {s} p≤q r≤s = toℚᵘ-cancel-≤ (begin
+  toℚᵘ(p + r)          ≈⟨ toℚᵘ-homo-+ p r ⟩
+  toℚᵘ(p) ℚᵘ.+ toℚᵘ(r) ≤⟨ ℚᵘ.+-mono-≤ (toℚᵘ-mono-≤ p≤q) (toℚᵘ-mono-≤ r≤s) ⟩
+  toℚᵘ(q) ℚᵘ.+ toℚᵘ(s) ≈⟨ ℚᵘ.≃-sym (toℚᵘ-homo-+ q s) ⟩
+  toℚᵘ(q + s)          ∎)
+  where open ℚᵘ.≤-Reasoning
+
++-monoˡ-≤ : ∀ r → (_+ r) Preserves _≤_ ⟶ _≤_
++-monoˡ-≤ r p≤q = +-mono-≤ p≤q (≤-refl {r})
+
++-monoʳ-≤ : ∀ r → (_+_ r) Preserves _≤_ ⟶ _≤_
++-monoʳ-≤ r p≤q = +-mono-≤ (≤-refl {r}) p≤q
+
+------------------------------------------------------------------------
+-- Properties of _+_ and _<_
+
++-mono-<-≤ : _+_ Preserves₂ _<_ ⟶ _≤_ ⟶ _<_
++-mono-<-≤ {p} {q} {r} {s} p<q r≤s = toℚᵘ-cancel-< (begin-strict
+  toℚᵘ(p + r)          ≈⟨ toℚᵘ-homo-+ p r ⟩
+  toℚᵘ(p) ℚᵘ.+ toℚᵘ(r) <⟨ ℚᵘ.+-mono-<-≤ (toℚᵘ-mono-< p<q) (toℚᵘ-mono-≤ r≤s) ⟩
+  toℚᵘ(q) ℚᵘ.+ toℚᵘ(s) ≈⟨ ℚᵘ.≃-sym (toℚᵘ-homo-+ q s) ⟩
+  toℚᵘ(q + s)          ∎)
+  where open ℚᵘ.≤-Reasoning
+
++-mono-≤-< : _+_ Preserves₂ _≤_ ⟶ _<_ ⟶ _<_
++-mono-≤-< {p} {q} {r} {s} p≤q r<s rewrite (+-comm p r) | (+-comm q s) = +-mono-<-≤ r<s p≤q
+
++-mono-< : _+_ Preserves₂ _<_ ⟶ _<_ ⟶ _<_
++-mono-< {p} {q} {r} {s} p<q r<s = <-trans (+-mono-<-≤ p<q (≤-refl {r})) (+-mono-≤-< (≤-refl {q}) r<s)
+
++-monoˡ-< : ∀ r → (_+ r) Preserves _<_ ⟶ _<_
++-monoˡ-< r p<q = +-mono-<-≤ p<q (≤-refl {r})
+
++-monoʳ-< : ∀ r → (_+_ r) Preserves _<_ ⟶ _<_
++-monoʳ-< r p<q = +-mono-≤-< (≤-refl {r}) p<q
 
 ------------------------------------------------------------------------
 -- Properties of _*_
@@ -779,37 +864,37 @@ toℚᵘ-isRingMonomorphism-+-* = record
 -- Algebraic properties
 
 private
-  module *-Monomorphism = RingMonomorphisms toℚᵘ-isRingMonomorphism-+-*
+  module +-*-Monomorphism = RingMonomorphisms toℚᵘ-isRingMonomorphism-+-*
 
 *-assoc : Associative _*_
-*-assoc = *-Monomorphism.*-assoc ℚᵘ.*-isMagma ℚᵘ.*-assoc
+*-assoc = +-*-Monomorphism.*-assoc ℚᵘ.*-isMagma ℚᵘ.*-assoc
 
 *-comm : Commutative _*_
-*-comm = *-Monomorphism.*-comm ℚᵘ.*-isMagma ℚᵘ.*-comm
+*-comm = +-*-Monomorphism.*-comm ℚᵘ.*-isMagma ℚᵘ.*-comm
 
 *-identityˡ : LeftIdentity 1ℚ _*_
-*-identityˡ = *-Monomorphism.*-identityˡ ℚᵘ.*-isMagma ℚᵘ.*-identityˡ
+*-identityˡ = +-*-Monomorphism.*-identityˡ ℚᵘ.*-isMagma ℚᵘ.*-identityˡ
 
 *-identityʳ : RightIdentity 1ℚ _*_
-*-identityʳ = *-Monomorphism.*-identityʳ ℚᵘ.*-isMagma ℚᵘ.*-identityʳ
+*-identityʳ = +-*-Monomorphism.*-identityʳ ℚᵘ.*-isMagma ℚᵘ.*-identityʳ
 
 *-identity : Identity 1ℚ _*_
 *-identity = *-identityˡ , *-identityʳ
 
 *-zeroˡ : LeftZero 0ℚ _*_
-*-zeroˡ = *-Monomorphism.zeroˡ ℚᵘ.+-0-isGroup ℚᵘ.*-isMagma ℚᵘ.*-zeroˡ
+*-zeroˡ = +-*-Monomorphism.zeroˡ ℚᵘ.+-0-isGroup ℚᵘ.*-isMagma ℚᵘ.*-zeroˡ
 
 *-zeroʳ : RightZero 0ℚ _*_
-*-zeroʳ = *-Monomorphism.zeroʳ ℚᵘ.+-0-isGroup ℚᵘ.*-isMagma ℚᵘ.*-zeroʳ
+*-zeroʳ = +-*-Monomorphism.zeroʳ ℚᵘ.+-0-isGroup ℚᵘ.*-isMagma ℚᵘ.*-zeroʳ
 
 *-zero : Zero 0ℚ _*_
 *-zero = *-zeroˡ , *-zeroʳ
 
 *-distribˡ-+ : _*_ DistributesOverˡ _+_
-*-distribˡ-+ = *-Monomorphism.distribˡ ℚᵘ.+-0-isGroup ℚᵘ.*-isMagma ℚᵘ.*-distribˡ-+
+*-distribˡ-+ = +-*-Monomorphism.distribˡ ℚᵘ.+-0-isGroup ℚᵘ.*-isMagma ℚᵘ.*-distribˡ-+
 
 *-distribʳ-+ : _*_ DistributesOverʳ _+_
-*-distribʳ-+ = *-Monomorphism.distribʳ ℚᵘ.+-0-isGroup ℚᵘ.*-isMagma ℚᵘ.*-distribʳ-+
+*-distribʳ-+ = +-*-Monomorphism.distribʳ ℚᵘ.+-0-isGroup ℚᵘ.*-isMagma ℚᵘ.*-distribʳ-+
 
 *-distrib-+ : _*_ DistributesOver _+_
 *-distrib-+ = *-distribˡ-+ , *-distribʳ-+
@@ -819,33 +904,38 @@ private
   toℚᵘ (1/ p * p)             ≈⟨ toℚᵘ-homo-* (1/ p) p ⟩
   toℚᵘ (1/ p) ℚᵘ.* toℚᵘ p     ≈⟨ ℚᵘ.*-congʳ (toℚᵘ-homo-1/ p {p≢0}) ⟩
   ℚᵘ.1/ (toℚᵘ p) ℚᵘ.* toℚᵘ p  ≈⟨ ℚᵘ.*-inverseˡ (toℚᵘ p) {p≢0} ⟩
-  ℚᵘ.1ℚᵘ                      ∎
-  )
+  ℚᵘ.1ℚᵘ                      ∎)
   where open ℚᵘ.≤-Reasoning
 
 *-inverseʳ : ∀ p {p≢0 : ∣ ↥ p ∣ ≢0} → p * (1/ p) {p≢0} ≡ 1ℚ
 *-inverseʳ p {p≢0} = trans (*-comm p (1/ p)) (*-inverseˡ p {p≢0})
 
+neg-distribˡ-* : ∀ p q → - (p * q) ≡ - p * q
+neg-distribˡ-* = +-*-Monomorphism.neg-distribˡ-* ℚᵘ.+-0-isGroup ℚᵘ.*-isMagma ℚᵘ.neg-distribˡ-*
+
+neg-distribʳ-* : ∀ p q → - (p * q) ≡ p * - q
+neg-distribʳ-* = +-*-Monomorphism.neg-distribʳ-* ℚᵘ.+-0-isGroup ℚᵘ.*-isMagma ℚᵘ.neg-distribʳ-*
+
 ------------------------------------------------------------------------
 -- Structures
 
 *-isMagma : IsMagma _*_
-*-isMagma = *-Monomorphism.*-isMagma ℚᵘ.*-isMagma
+*-isMagma = +-*-Monomorphism.*-isMagma ℚᵘ.*-isMagma
 
 *-isSemigroup : IsSemigroup _*_
-*-isSemigroup = *-Monomorphism.*-isSemigroup ℚᵘ.*-isSemigroup
+*-isSemigroup = +-*-Monomorphism.*-isSemigroup ℚᵘ.*-isSemigroup
 
 *-1-isMonoid : IsMonoid _*_ 1ℚ
-*-1-isMonoid = *-Monomorphism.*-isMonoid ℚᵘ.*-1-isMonoid
+*-1-isMonoid = +-*-Monomorphism.*-isMonoid ℚᵘ.*-1-isMonoid
 
 *-1-isCommutativeMonoid : IsCommutativeMonoid _*_ 1ℚ
-*-1-isCommutativeMonoid = *-Monomorphism.*-isCommutativeMonoid ℚᵘ.*-1-isCommutativeMonoid
+*-1-isCommutativeMonoid = +-*-Monomorphism.*-isCommutativeMonoid ℚᵘ.*-1-isCommutativeMonoid
 
 +-*-isRing : IsRing _+_ _*_ -_ 0ℚ 1ℚ
-+-*-isRing = *-Monomorphism.isRing ℚᵘ.+-*-isRing
++-*-isRing = +-*-Monomorphism.isRing ℚᵘ.+-*-isRing
 
 +-*-isCommutativeRing : IsCommutativeRing _+_ _*_ -_ 0ℚ 1ℚ
-+-*-isCommutativeRing = *-Monomorphism.isCommutativeRing ℚᵘ.+-*-isCommutativeRing
++-*-isCommutativeRing = +-*-Monomorphism.isCommutativeRing ℚᵘ.+-*-isCommutativeRing
 
 ------------------------------------------------------------------------
 -- Packages
@@ -881,6 +971,41 @@ private
   }
 
 ------------------------------------------------------------------------
+-- Properties of _*_ and _≤_
+
+*-monoˡ-≤-nonNeg : ∀ r → NonNegative r → (_* r) Preserves _≤_ ⟶ _≤_
+*-monoˡ-≤-nonNeg r r≥0 {p} {q} p≤q = toℚᵘ-cancel-≤ (begin
+  toℚᵘ(p * r)          ≈⟨ toℚᵘ-homo-* p r ⟩
+  toℚᵘ(p) ℚᵘ.* toℚᵘ(r) ≤⟨ ℚᵘ.*-monoˡ-≤-nonNeg (toℚᵘ r) r≥0 (toℚᵘ-mono-≤ p≤q) ⟩
+  toℚᵘ(q) ℚᵘ.* toℚᵘ(r) ≈⟨ ℚᵘ.≃-sym (toℚᵘ-homo-* q r) ⟩
+  toℚᵘ(q * r)          ∎)
+  where open ℚᵘ.≤-Reasoning
+
+*-monoʳ-≤-nonNeg : ∀ r → NonNegative r → (r *_) Preserves _≤_ ⟶ _≤_
+*-monoʳ-≤-nonNeg r r≥0 {p} {q} rewrite *-comm r p | *-comm r q = *-monoˡ-≤-nonNeg r r≥0
+
+*-monoˡ-≤-pos : ∀ r → Positive r → (_* r) Preserves _≤_ ⟶ _≤_
+*-monoˡ-≤-pos r = (*-monoˡ-≤-nonNeg r) ∘ (positive⇒nonNegative r)
+
+*-monoʳ-≤-pos : ∀ r → Positive r → (r *_) Preserves _≤_ ⟶ _≤_
+*-monoʳ-≤-pos r = (*-monoʳ-≤-nonNeg r) ∘ (positive⇒nonNegative r)
+
+------------------------------------------------------------------------
+-- Properties of _*_ and _<_
+
+*-monoˡ-<-pos : ∀ r → Positive r → (_* r) Preserves _<_ ⟶ _<_
+*-monoˡ-<-pos r r>0 {p} {q} p<q = toℚᵘ-cancel-< (begin-strict
+  toℚᵘ(p * r)          ≈⟨ toℚᵘ-homo-* p r ⟩
+  toℚᵘ(p) ℚᵘ.* toℚᵘ(r) <⟨ ℚᵘ.*-monoˡ-<-pos (toℚᵘ r) r>0 (toℚᵘ-mono-< p<q) ⟩
+  toℚᵘ(q) ℚᵘ.* toℚᵘ(r) ≈⟨ ℚᵘ.≃-sym (toℚᵘ-homo-* q r) ⟩
+  toℚᵘ(q * r)          ∎)
+  where open ℚᵘ.≤-Reasoning
+
+*-monoʳ-<-pos : ∀ r → Positive r → (r *_) Preserves _<_ ⟶ _<_
+*-monoʳ-<-pos r r>0 {p} {q} rewrite *-comm r p | *-comm r q = *-monoˡ-<-pos r r>0
+
+
+------------------------------------------------------------------------
 -- DEPRECATED NAMES
 ------------------------------------------------------------------------
 -- Please use the new names as continuing support for the old names is
@@ -892,4 +1017,17 @@ private
 {-# WARNING_ON_USAGE ≤-irrelevance
 "Warning: ≤-irrelevance was deprecated in v1.0.
 Please use ≤-irrelevant instead."
+#-}
+
+-- Version 1.6
+
+toℚᵘ-homo‿- = toℚᵘ-homo-neg
+{-# WARNING_ON_USAGE toℚᵘ-homo‿-
+"Warning: toℚᵘ-homo‿- was deprecated in v1.6.
+Please use toℚᵘ-homo-neg instead."
+#-}
+-‿cong = neg-cong
+{-# WARNING_ON_USAGE -‿cong
+"Warning: -‿cong was deprecated in v1.6.
+Please use neg-cong instead."
 #-}
